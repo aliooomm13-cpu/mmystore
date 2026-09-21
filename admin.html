@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>لوحة الإدارة</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
+
     body {
       font-family: Arial, sans-serif;
       max-width: 900px;
@@ -13,30 +18,20 @@
       padding: 20px;
       background: #f5f5f5;
     }
+
     h1 {
       text-align: center;
     }
-    #message {
-      text-align: center;
-      margin: 20px;
-      font-weight: bold;
-    }
-    .deposit {
-      background: white;
-      padding: 20px;
-      margin: 20px 0;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .deposit p {
-      margin: 8px 0;
-    }
-    .proof {
-      max-width: 100%;
-      max-height: 500px;
-      margin: 15px 0;
+
+    input {
+      width: 90%;
+      padding: 13px;
+      margin: 7px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
       border-radius: 8px;
     }
+
     button {
       padding: 12px 20px;
       margin: 5px;
@@ -45,218 +40,640 @@
       cursor: pointer;
       font-size: 16px;
     }
+
+    .loginBox {
+      max-width: 450px;
+      margin: 60px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    }
+
+    .loginButton {
+      width: 90%;
+      background: #222;
+      color: white;
+    }
+
+    #adminPanel {
+      display: none;
+    }
+
+    #message {
+      text-align: center;
+      margin: 20px;
+      font-weight: bold;
+    }
+
+    .deposit {
+      background: white;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .deposit p {
+      margin: 8px 0;
+      word-break: break-word;
+    }
+
+    .proof {
+      max-width: 100%;
+      max-height: 500px;
+      margin: 15px 0;
+      border-radius: 8px;
+    }
+
     .approve {
       background: #20a464;
       color: white;
     }
+
     .reject {
       background: #d93636;
       color: white;
     }
+
+    .logout {
+      background: #555;
+      color: white;
+    }
+
     .status {
       font-weight: bold;
     }
+
   </style>
 </head>
+
+
 <body>
+
+
+<!-- تسجيل دخول الأدمن -->
+
+<div id="loginBox" class="loginBox">
+
+  <h1>👑</h1>
+
+  <h2>تسجيل دخول الإدارة</h2>
+
+  <input
+    id="adminEmail"
+    type="email"
+    placeholder="البريد الإلكتروني"
+  >
+
+  <input
+    id="adminPassword"
+    type="password"
+    placeholder="كلمة المرور"
+  >
+
+  <button
+    class="loginButton"
+    onclick="adminLogin()"
+  >
+    🔐 تسجيل الدخول
+  </button>
+
+  <p id="loginMessage"></p>
+
+</div>
+
+
+
+<!-- لوحة الإدارة -->
+
+<div id="adminPanel">
+
   <h1>👑 لوحة الإدارة</h1>
-  <p id="message">جاري التحقق من الحساب...</p>
+
+  <p id="message">
+    جاري تحميل الطلبات...
+  </p>
+
+  <div style="text-align:center;">
+
+    <button
+      class="logout"
+      onclick="logout()"
+    >
+      تسجيل الخروج
+    </button>
+
+  </div>
+
   <div id="deposits"></div>
+
+</div>
+
+
+
 <script>
+
+
 const SUPABASE_URL =
 "https://evqmpbhozwpujjrxkbat.supabase.co";
+
+
 const SUPABASE_KEY =
 "sb_publishable_4n7k-PEyPPNA9RcFVMa4Cg_lqW19wZu";
+
+
 const supabaseClient =
 supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-// التحقق من الأدمن
+
+
+
+// تسجيل دخول الأدمن
+
+async function adminLogin() {
+
+  const email =
+    document.getElementById("adminEmail").value.trim();
+
+  const password =
+    document.getElementById("adminPassword").value;
+
+
+  if (!email || !password) {
+
+    document.getElementById("loginMessage").textContent =
+      "اكتب البريد وكلمة المرور";
+
+    return;
+  }
+
+
+  document.getElementById("loginMessage").textContent =
+    "جاري تسجيل الدخول...";
+
+
+  const { error } =
+    await supabaseClient.auth.signInWithPassword({
+
+      email: email,
+
+      password: password
+
+    });
+
+
+  if (error) {
+
+    document.getElementById("loginMessage").textContent =
+      "❌ " + error.message;
+
+    return;
+  }
+
+
+  const isAdmin =
+    await checkAdmin();
+
+
+  if (!isAdmin) {
+
+    await supabaseClient.auth.signOut();
+
+    document.getElementById("loginMessage").textContent =
+      "❌ هذا الحساب ليس حساب أدمن";
+
+    return;
+  }
+
+
+  document.getElementById("loginBox").style.display =
+    "none";
+
+  document.getElementById("adminPanel").style.display =
+    "block";
+
+
+  await loadDeposits();
+
+}
+
+
+
+// التحقق من صلاحية الأدمن
+
 async function checkAdmin() {
+
   const { data: { user } } =
     await supabaseClient.auth.getUser();
+
+
   if (!user) {
-    document.getElementById("message").textContent =
-      "يجب تسجيل الدخول أولاً";
+
     return false;
+
   }
+
+
   const { data, error } =
     await supabaseClient
+
       .from("profiles")
+
       .select("is_admin")
+
       .eq("id", user.id)
+
       .single();
-  if (error || !data || data.is_admin !== true) {
-    document.getElementById("message").textContent =
-      "❌ ليس لديك صلاحية الدخول إلى لوحة الإدارة";
+
+
+  if (error || !data) {
+
     return false;
+
   }
-  document.getElementById("message").textContent =
-    "تم الدخول إلى لوحة الإدارة ✅";
-  return true;
+
+
+  return data.is_admin === true;
+
 }
+
+
+
 // تحميل طلبات الشحن
+
 async function loadDeposits() {
+
+  document.getElementById("message").textContent =
+    "جاري تحميل الطلبات...";
+
+
   const { data, error } =
     await supabaseClient
+
       .from("wallet_deposits")
+
       .select("*")
+
       .order("created_at", {
         ascending: false
       });
+
+
   if (error) {
+
     console.error(error);
+
     document.getElementById("message").textContent =
       "حدث خطأ أثناء تحميل الطلبات: " +
       error.message;
+
     return;
+
   }
+
+
   const container =
     document.getElementById("deposits");
+
+
   container.innerHTML = "";
+
+
   if (!data || data.length === 0) {
-    container.innerHTML =
-      "<p style='text-align:center;'>لا توجد طلبات شحن.</p>";
+
+    document.getElementById("message").textContent =
+      "لا توجد طلبات شحن.";
+
     return;
+
   }
+
+
+  document.getElementById("message").textContent =
+    "طلبات الشحن: " + data.length;
+
+
+
   for (const deposit of data) {
+
+
     const box =
       document.createElement("div");
-    box.className = "deposit";
+
+
+    box.className =
+      "deposit";
+
+
     let proofHTML =
       "<p>لا توجد صورة تحويل.</p>";
-    // إنشاء رابط مؤقت للصورة
+
+
+
+    // صورة التحويل
+
     if (deposit.proof_url) {
+
+
       const { data: signedData, error: signedError } =
+
         await supabaseClient.storage
+
           .from("payment-proofs")
+
           .createSignedUrl(
+
             deposit.proof_url,
+
             3600
+
           );
+
+
       if (!signedError && signedData) {
+
+
         proofHTML = `
-          <p><strong>📸 صورة التحويل:</strong></p>
-          <a href="${signedData.signedUrl}" target="_blank">
+
+          <p>
+            <strong>📸 صورة التحويل:</strong>
+          </p>
+
+          <a
+            href="${signedData.signedUrl}"
+            target="_blank"
+          >
+
             <img
               class="proof"
               src="${signedData.signedUrl}"
               alt="صورة التحويل"
             >
+
           </a>
+
         `;
+
       }
+
     }
+
+
+
     let buttonsHTML = "";
+
+
+
     if (deposit.status === "pending") {
+
+
       buttonsHTML = `
+
         <button
           class="approve"
           onclick="approveDeposit('${deposit.id}')"
         >
           ✅ موافقة
         </button>
+
+
         <button
           class="reject"
           onclick="rejectDeposit('${deposit.id}')"
         >
           ❌ رفض
         </button>
+
       `;
+
     }
+
+
+
     box.innerHTML = `
+
       <p>
         <strong>🆔 رقم الطلب:</strong>
         ${deposit.id}
       </p>
+
+
       <p>
         <strong>👤 المستخدم:</strong>
         ${deposit.user_id}
       </p>
+
+
       <p>
         <strong>💳 طريقة الدفع:</strong>
         ${deposit.method}
       </p>
+
+
       <p>
         <strong>💰 المبلغ:</strong>
         ${Number(deposit.amount).toFixed(2)}
         د.ل
       </p>
+
+
       <p>
         <strong>📱 رقم المحول:</strong>
         ${deposit.sender_number}
       </p>
+
+
       <p>
         <strong>📅 التاريخ:</strong>
-        ${new Date(deposit.created_at).toLocaleString("ar-LY")}
+        ${new Date(
+          deposit.created_at
+        ).toLocaleString("ar-LY")}
       </p>
+
+
       <p class="status">
         <strong>الحالة:</strong>
         ${deposit.status}
       </p>
+
+
       ${proofHTML}
+
+
       <div>
         ${buttonsHTML}
       </div>
+
     `;
+
+
     container.appendChild(box);
+
   }
+
 }
-// الموافقة على الشحن
+
+
+
+// الموافقة
+
 async function approveDeposit(id) {
-  if (!confirm("هل أنت متأكد من الموافقة على هذا الطلب؟")) {
+
+
+  if (!confirm(
+    "هل أنت متأكد من الموافقة على هذا الطلب؟"
+  )) {
+
     return;
+
   }
+
+
   const { error } =
     await supabaseClient.rpc(
+
       "approve_deposit",
+
       {
         deposit_id: id
       }
+
     );
+
+
   if (error) {
+
     alert(
       "حدث خطأ: " +
       error.message
     );
+
     return;
+
   }
-  alert("تمت الموافقة وإضافة الرصيد ✅");
+
+
+  alert(
+    "تمت الموافقة وإضافة الرصيد ✅"
+  );
+
+
   await loadDeposits();
+
 }
-// رفض الشحن
+
+
+
+// الرفض
+
 async function rejectDeposit(id) {
-  if (!confirm("هل أنت متأكد من رفض هذا الطلب؟")) {
+
+
+  if (!confirm(
+    "هل أنت متأكد من رفض هذا الطلب؟"
+  )) {
+
     return;
+
   }
+
+
   const { error } =
     await supabaseClient.rpc(
+
       "reject_deposit",
+
       {
         deposit_id: id
       }
+
     );
+
+
   if (error) {
+
     alert(
       "حدث خطأ: " +
       error.message
     );
+
     return;
+
   }
-  alert("تم رفض الطلب ❌");
+
+
+  alert(
+    "تم رفض الطلب ❌"
+  );
+
+
   await loadDeposits();
+
 }
-// تشغيل لوحة الإدارة
+
+
+
+// تسجيل الخروج
+
+async function logout() {
+
+  await supabaseClient.auth.signOut();
+
+  location.reload();
+
+}
+
+
+
+// إذا كان هناك تسجيل دخول سابق
+
 async function start() {
+
+  const { data: { user } } =
+    await supabaseClient.auth.getUser();
+
+
+  if (!user) {
+
+    return;
+
+  }
+
+
   const isAdmin =
     await checkAdmin();
+
+
   if (!isAdmin) {
+
+    await supabaseClient.auth.signOut();
+
     return;
+
   }
+
+
+  document.getElementById("loginBox").style.display =
+    "none";
+
+
+  document.getElementById("adminPanel").style.display =
+    "block";
+
+
   await loadDeposits();
+
 }
+
+
 start();
+
+
 </script>
+
 </body>
 </html>
