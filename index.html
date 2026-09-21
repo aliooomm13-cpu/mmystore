@@ -3,70 +3,223 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>متجري</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+    }
+
+    input {
+      width: 90%;
+      padding: 12px;
+      margin: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 12px 20px;
+      margin: 6px;
+      cursor: pointer;
+    }
+
+    #account {
+      display: none;
+    }
+
+    .balance {
+      font-size: 24px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 
 <body>
 
-  <h1>متجري 🛒</h1>
+  <div id="login">
 
-  <h2>إنشاء حساب</h2>
+    <h1>🛒 متجري</h1>
 
-  <input id="email" type="email" placeholder="البريد الإلكتروني">
-  <br><br>
+    <h2>تسجيل الدخول</h2>
 
-  <input id="password" type="password" placeholder="كلمة المرور">
-  <br><br>
+    <input
+      id="email"
+      type="email"
+      placeholder="البريد الإلكتروني"
+    >
 
-  <button onclick="register()">إنشاء حساب</button>
-  <button onclick="login()">تسجيل الدخول</button>
+    <input
+      id="password"
+      type="password"
+      placeholder="كلمة المرور"
+    >
 
-  <p id="message"></p>
+    <br>
 
-  <script>
-    const SUPABASE_URL = "https://evqmpbhozwpujjrxkbat.supabase.co";
+    <button onclick="register()">
+      إنشاء حساب
+    </button>
 
-    const SUPABASE_KEY = "sb_publishable_4n7k-PEyPPNA9RcFVMa4Cg_lqW19wZu";
+    <button onclick="login()">
+      تسجيل الدخول
+    </button>
 
-    const supabaseClient = supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_KEY
-    );
+    <p id="message"></p>
 
-    async function register() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+  </div>
 
-      if (!email || !password) {
-        document.getElementById("message").textContent =
-          "اكتب البريد وكلمة المرور";
-        return;
-      }
 
-      const { error } = await supabaseClient.auth.signUp({
-        email: email,
-        password: password
-      });
+  <div id="account">
 
-      document.getElementById("message").textContent =
-        error ? error.message : "تم إنشاء الحساب ✅";
-    }
+    <h1>أهلاً بك 👋</h1>
 
-    async function login() {
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+    <p>رصيد محفظتك:</p>
 
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
+    <p class="balance">
+      <span id="balance">0.00</span> د.ل
+    </p>
 
-      document.getElementById("message").textContent =
-        error ? error.message : "تم تسجيل الدخول ✅";
-    }
-  </script>
+    <button onclick="logout()">
+      تسجيل الخروج
+    </button>
+
+  </div>
+
+
+<script>
+
+const SUPABASE_URL =
+"https://evqmpbhozwpujjrxkbat.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_4n7k-PEyPPNA9RcFVMa4Cg_lqW19wZu";
+
+const supabaseClient =
+supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+
+// إنشاء حساب
+async function register() {
+
+  const email =
+    document.getElementById("email").value;
+
+  const password =
+    document.getElementById("password").value;
+
+  if (!email || !password) {
+    document.getElementById("message").textContent =
+      "اكتب البريد وكلمة المرور";
+    return;
+  }
+
+  const { error } =
+    await supabaseClient.auth.signUp({
+      email: email,
+      password: password
+    });
+
+  if (error) {
+
+    document.getElementById("message").textContent =
+      error.message;
+
+    return;
+  }
+
+  document.getElementById("message").textContent =
+    "تم إنشاء الحساب ✅";
+}
+
+
+// تسجيل الدخول
+async function login() {
+
+  const email =
+    document.getElementById("email").value;
+
+  const password =
+    document.getElementById("password").value;
+
+  const { error } =
+    await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+  if (error) {
+
+    document.getElementById("message").textContent =
+      error.message;
+
+    return;
+  }
+
+  await loadProfile();
+}
+
+
+// تحميل الحساب والرصيد
+async function loadProfile() {
+
+  const { data: { user } } =
+    await supabaseClient.auth.getUser();
+
+  if (!user) {
+    return;
+  }
+
+  const { data, error } =
+    await supabaseClient
+      .from("profiles")
+      .select("balance")
+      .eq("id", user.id)
+      .single();
+
+  if (error) {
+
+    console.error(error);
+
+    document.getElementById("message").textContent =
+      "حدث خطأ في تحميل الحساب";
+
+    return;
+  }
+
+  document.getElementById("balance").textContent =
+    Number(data.balance).toFixed(2);
+
+  document.getElementById("login").style.display =
+    "none";
+
+  document.getElementById("account").style.display =
+    "block";
+}
+
+
+// تسجيل الخروج
+async function logout() {
+
+  await supabaseClient.auth.signOut();
+
+  location.reload();
+}
+
+
+// التحقق عند فتح الموقع
+loadProfile();
+
+</script>
 
 </body>
 </html>
