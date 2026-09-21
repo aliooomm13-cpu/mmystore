@@ -11,22 +11,22 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 500px;
-      margin: 50px auto;
+      max-width: 550px;
+      margin: 40px auto;
       padding: 20px;
       text-align: center;
     }
 
-    input {
+    input, select {
       width: 90%;
       padding: 12px;
-      margin: 6px;
+      margin: 7px;
       box-sizing: border-box;
     }
 
     button {
       padding: 12px 20px;
-      margin: 6px;
+      margin: 7px;
       cursor: pointer;
     }
 
@@ -34,15 +34,28 @@
       display: none;
     }
 
+    #depositBox {
+      display: none;
+      margin-top: 25px;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+
     .balance {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: bold;
+    }
+
+    #message {
+      margin-top: 15px;
     }
   </style>
 </head>
 
 <body>
 
+  <!-- تسجيل الدخول -->
   <div id="login">
 
     <h1>🛒 متجري</h1>
@@ -76,6 +89,7 @@
   </div>
 
 
+  <!-- حساب العميل -->
   <div id="account">
 
     <h1>أهلاً بك 👋</h1>
@@ -86,9 +100,64 @@
       <span id="balance">0.00</span> د.ل
     </p>
 
+    <button onclick="showDeposit()">
+      💰 شحن المحفظة
+    </button>
+
     <button onclick="logout()">
       تسجيل الخروج
     </button>
+
+
+    <!-- نموذج الشحن -->
+    <div id="depositBox">
+
+      <h2>شحن المحفظة 💰</h2>
+
+      <select id="method">
+        <option value="">اختر طريقة التحويل</option>
+        <option value="ليبيانا">ليبيانا</option>
+        <option value="المدار">المدار</option>
+        <option value="مصرف">تحويل مصرفي</option>
+      </select>
+
+      <input
+        id="amount"
+        type="number"
+        min="1"
+        step="0.01"
+        placeholder="المبلغ بالدينار الليبي"
+      >
+
+      <input
+        id="senderNumber"
+        type="text"
+        placeholder="رقم الهاتف أو الحساب الذي حولت منه"
+      >
+
+      <input
+        id="reference"
+        type="text"
+        placeholder="رقم العملية / المرجع"
+      >
+
+      <p>
+        بعد إرسال الطلب ستراجعه الإدارة.
+        <br>
+        لن يضاف المبلغ إلى رصيدك إلا بعد الموافقة.
+      </p>
+
+      <button onclick="submitDeposit()">
+        إرسال طلب الشحن
+      </button>
+
+      <button onclick="hideDeposit()">
+        إلغاء
+      </button>
+
+      <p id="depositMessage"></p>
+
+    </div>
 
   </div>
 
@@ -112,7 +181,7 @@ supabase.createClient(
 async function register() {
 
   const email =
-    document.getElementById("email").value;
+    document.getElementById("email").value.trim();
 
   const password =
     document.getElementById("password").value;
@@ -146,7 +215,7 @@ async function register() {
 async function login() {
 
   const email =
-    document.getElementById("email").value;
+    document.getElementById("email").value.trim();
 
   const password =
     document.getElementById("password").value;
@@ -204,6 +273,125 @@ async function loadProfile() {
 
   document.getElementById("account").style.display =
     "block";
+}
+
+
+// إظهار نموذج الشحن
+function showDeposit() {
+
+  document.getElementById("depositBox").style.display =
+    "block";
+}
+
+
+// إخفاء نموذج الشحن
+function hideDeposit() {
+
+  document.getElementById("depositBox").style.display =
+    "none";
+}
+
+
+// إرسال طلب الشحن
+async function submitDeposit() {
+
+  const method =
+    document.getElementById("method").value;
+
+  const amount =
+    Number(document.getElementById("amount").value);
+
+  const senderNumber =
+    document.getElementById("senderNumber").value.trim();
+
+  const reference =
+    document.getElementById("reference").value.trim();
+
+
+  if (!method) {
+
+    document.getElementById("depositMessage").textContent =
+      "اختر طريقة التحويل";
+
+    return;
+  }
+
+
+  if (!amount || amount <= 0) {
+
+    document.getElementById("depositMessage").textContent =
+      "أدخل مبلغًا صحيحًا";
+
+    return;
+  }
+
+
+  if (!senderNumber) {
+
+    document.getElementById("depositMessage").textContent =
+      "اكتب رقم الهاتف أو الحساب الذي حولت منه";
+
+    return;
+  }
+
+
+  const { data: { user } } =
+    await supabaseClient.auth.getUser();
+
+
+  if (!user) {
+
+    document.getElementById("depositMessage").textContent =
+      "يجب تسجيل الدخول أولاً";
+
+    return;
+  }
+
+
+  const { error } =
+    await supabaseClient
+      .from("wallet_deposits")
+      .insert({
+
+        user_id: user.id,
+
+        method: method,
+
+        amount: amount,
+
+        sender_number: senderNumber,
+
+        reference_number:
+          reference || null,
+
+        status: "pending"
+
+      });
+
+
+  if (error) {
+
+    console.error(error);
+
+    document.getElementById("depositMessage").textContent =
+      "حدث خطأ أثناء إرسال الطلب: " +
+      error.message;
+
+    return;
+  }
+
+
+  document.getElementById("depositMessage").textContent =
+    "تم إرسال طلب الشحن ✅";
+
+
+  document.getElementById("amount").value = "";
+
+  document.getElementById("senderNumber").value = "";
+
+  document.getElementById("reference").value = "";
+
+  document.getElementById("method").value = "";
 }
 
 
