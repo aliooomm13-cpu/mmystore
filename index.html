@@ -3,515 +3,615 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>متجري</title>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 550px;
-      margin: 40px auto;
+      background: #f4f4f4;
+      margin: 0;
       padding: 20px;
+    }
+
+    .box {
+      max-width: 500px;
+      margin: 30px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    }
+
+    h1, h2 {
       text-align: center;
     }
-    input, select {
-      width: 90%;
-      padding: 12px;
-      margin: 7px;
+
+    input, select, button {
+      width: 100%;
       box-sizing: border-box;
-    }
-    button {
-      padding: 12px 20px;
-      margin: 7px;
-      cursor: pointer;
-    }
-    #account {
-      display: none;
-    }
-    #otpBox {
-      display: none;
-    }
-    #depositBox {
-      display: none;
-      margin-top: 25px;
-      padding: 20px;
+      padding: 13px;
+      margin-top: 10px;
+      border-radius: 8px;
       border: 1px solid #ccc;
-      border-radius: 10px;
+      font-size: 16px;
     }
+
+    button {
+      background: #111;
+      color: white;
+      cursor: pointer;
+      border: none;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .hidden {
+      display: none;
+    }
+
     .balance {
-      font-size: 26px;
+      background: #eee;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      margin: 15px 0;
+      font-size: 20px;
       font-weight: bold;
     }
-    #paymentInfo {
-      display: none;
-      margin: 15px 0;
-      padding: 15px;
-      background: #f1f1f1;
-      border-radius: 10px;
+
+    .info {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 10px;
     }
-    #message,
-    #depositMessage {
+
+    #message {
       margin-top: 15px;
-    }
-    #otp {
       text-align: center;
-      font-size: 24px;
-      letter-spacing: 8px;
+      font-weight: bold;
     }
   </style>
 </head>
+
 <body>
-<!-- ========================= -->
-<!-- تسجيل الدخول -->
-<!-- ========================= -->
-<div id="login">
-  <h1>🛒 متجري</h1>
-  <h2>تسجيل الدخول</h2>
-  <p>
-    أدخل بريدك الإلكتروني وسنرسل لك رمز دخول.
-  </p>
-  <input
-    id="email"
-    type="email"
-    placeholder="البريد الإلكتروني"
-  >
-  <br>
-  <button onclick="sendOTP()">
-    إرسال الرمز
-  </button>
-  <p id="message"></p>
-  <!-- إدخال الرمز -->
-  <div id="otpBox">
-    <h3>📩 أدخل الرمز</h3>
-    <p>
-      تم إرسال رمز إلى بريدك الإلكتروني.
-    </p>
+
+<div class="box">
+
+  <h1>متجري</h1>
+
+  <!-- تسجيل الدخول -->
+  <div id="login">
+
+    <h2>تسجيل الدخول</h2>
+
     <input
-      id="otp"
-      type="text"
-      inputmode="numeric"
-      maxlength="6"
-      placeholder="000000"
+      type="email"
+      id="email"
+      placeholder="أدخل بريدك الإلكتروني"
     >
-    <br>
-    <button onclick="verifyOTP()">
-      تأكيد الرمز
-    </button>
+
     <button onclick="sendOTP()">
-      إعادة إرسال الرمز
+      إرسال رمز الدخول
     </button>
+
+    <div id="otpArea" class="hidden">
+
+      <input
+        type="text"
+        id="otp"
+        maxlength="6"
+        inputmode="numeric"
+        placeholder="أدخل رمز الـ 6 أرقام"
+      >
+
+      <button onclick="verifyOTP()">
+        تأكيد الرمز
+      </button>
+
+      <button onclick="sendOTP()">
+        إعادة إرسال الرمز
+      </button>
+
+    </div>
+
+    <div id="message"></div>
+
   </div>
-</div>
-<!-- ========================= -->
-<!-- حساب العميل -->
-<!-- ========================= -->
-<div id="account">
-  <h1>أهلاً بك 👋</h1>
-  <p>
-    رصيد محفظتك:
-  </p>
-  <p class="balance">
-    <span id="balance">
-      0.00
-    </span>
-    د.ل
-  </p>
-  <button onclick="showDeposit()">
-    💰 شحن المحفظة
-  </button>
-  <button onclick="logout()">
-    تسجيل الخروج
-  </button>
-  <!-- ========================= -->
-  <!-- شحن المحفظة -->
-  <!-- ========================= -->
-  <div id="depositBox">
-    <h2>
-      شحن المحفظة 💰
-    </h2>
-    <select
-      id="method"
-      onchange="showPaymentInfo()"
-    >
-      <option value="">
-        اختر طريقة التحويل
-      </option>
-      <option value="ليبيانا">
-        ليبيانا
-      </option>
-      <option value="مصرف">
-        تحويل مصرفي
-      </option>
+
+
+  <!-- الحساب -->
+  <div id="account" class="hidden">
+
+    <h2>حسابي</h2>
+
+    <div class="info">
+      البريد:
+      <span id="userEmail"></span>
+    </div>
+
+    <div class="balance">
+      الرصيد:
+      <span id="balance">0.00</span>
+      د.ل
+    </div>
+
+
+    <h2>شحن المحفظة</h2>
+
+    <select id="method" onchange="changeMethod()">
+      <option value="">اختر طريقة الدفع</option>
+      <option value="libyana">ليبيانا</option>
+      <option value="bank">تحويل مصرفي</option>
     </select>
-    <div id="paymentInfo"></div>
+
+    <div id="paymentInfo" class="info hidden"></div>
+
     <input
-      id="amount"
       type="number"
-      min="1"
-      step="0.01"
-      placeholder="المبلغ بالدينار الليبي"
+      id="amount"
+      placeholder="مبلغ الشحن بالدينار"
     >
+
     <input
-      id="senderNumber"
       type="text"
-      placeholder="رقم الهاتف أو الحساب الذي حولت منه"
+      id="senderNumber"
+      placeholder="رقم الهاتف الذي أرسلت منه"
     >
-    <p>
-      📸 أرسل صورة واضحة لإيصال التحويل
-    </p>
+
     <input
-      id="proof"
-      type="file"
-      accept="image/png,image/jpeg,image/webp"
+      type="text"
+      id="referenceNumber"
+      placeholder="رقم العملية / المرجع (اختياري)"
     >
-    <p>
-      بعد إرسال الطلب ستراجعه الإدارة.
-      <br>
-      لن يضاف المبلغ إلى رصيدك إلا بعد الموافقة.
-    </p>
+
+    <label style="display:block;margin-top:15px;">
+      صورة إثبات التحويل
+    </label>
+
+    <input
+      type="file"
+      id="proof"
+      accept="image/*"
+    >
+
     <button onclick="submitDeposit()">
       إرسال طلب الشحن
     </button>
-    <button onclick="hideDeposit()">
-      إلغاء
+
+    <button onclick="logout()" style="background:#b00020;">
+      تسجيل الخروج
     </button>
-    <p id="depositMessage"></p>
+
+    <div id="depositMessage"></div>
+
   </div>
+
 </div>
+
+
 <script>
-// ============================
-// Supabase
-// ============================
+
 const SUPABASE_URL =
 "https://evqmpbhozwpujjrxkbat.supabase.co";
+
 const SUPABASE_KEY =
 "sb_publishable_4n7k-PEyPPNA9RcFVMa4Cg_lqW19wZu";
+
 const supabaseClient =
 supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-// ============================
-// إرسال رمز OTP
-// ============================
+
+
+/* =========================
+   إرسال OTP
+========================= */
+
 async function sendOTP() {
+
   const email =
-    document
-      .getElementById("email")
-      .value
-      .trim();
+    document.getElementById("email").value.trim();
+
+  const message =
+    document.getElementById("message");
+
   if (!email) {
-    document.getElementById("message").textContent =
-      "اكتب بريدك الإلكتروني أولاً.";
+    message.innerText =
+      "اكتب البريد الإلكتروني أولاً";
     return;
   }
-  document.getElementById("message").textContent =
-    "جاري إرسال الرمز... ⏳";
+
+  message.innerText =
+    "جاري إرسال الرمز...";
+
   const { error } =
     await supabaseClient.auth.signInWithOtp({
+
       email: email,
+
       options: {
         shouldCreateUser: true
       }
+
     });
+
   if (error) {
-    console.error(error);
-    document.getElementById("message").textContent =
+
+    message.innerText =
       "حدث خطأ: " + error.message;
+
     return;
   }
-  document.getElementById("message").textContent =
-    "تم إرسال الرمز إلى بريدك ✅";
-  document.getElementById("otpBox").style.display =
-    "block";
+
+  message.innerText =
+    "تم إرسال رمز الدخول إلى بريدك الإلكتروني";
+
+  document
+    .getElementById("otpArea")
+    .classList.remove("hidden");
 }
-// ============================
-// تأكيد الرمز
-// ============================
+
+
+/* =========================
+   تأكيد OTP
+========================= */
+
 async function verifyOTP() {
+
   const email =
-    document
-      .getElementById("email")
-      .value
-      .trim();
-  const code =
-    document
-      .getElementById("otp")
-      .value
-      .trim();
-  if (!email) {
-    document.getElementById("message").textContent =
-      "اكتب البريد الإلكتروني.";
+    document.getElementById("email").value.trim();
+
+  const token =
+    document.getElementById("otp").value.trim();
+
+  const message =
+    document.getElementById("message");
+
+  if (!email || !token) {
+
+    message.innerText =
+      "أدخل البريد والرمز";
+
     return;
   }
-  if (!code || code.length !== 6) {
-    document.getElementById("message").textContent =
-      "اكتب رمز مكون من 6 أرقام.";
+
+  if (token.length !== 6) {
+
+    message.innerText =
+      "الرمز يجب أن يكون 6 أرقام";
+
     return;
   }
-  document.getElementById("message").textContent =
-    "جاري التحقق... ⏳";
+
+  message.innerText =
+    "جاري التحقق...";
+
   const { data, error } =
     await supabaseClient.auth.verifyOtp({
+
       email: email,
-      token: code,
+
+      token: token,
+
       type: "email"
+
     });
+
   if (error) {
-    console.error(error);
-    document.getElementById("message").textContent =
-      "الرمز غير صحيح أو انتهت صلاحيته.";
+
+    message.innerText =
+      "رمز غير صحيح أو منتهي: " +
+      error.message;
+
     return;
   }
-  if (!data.session) {
-    document.getElementById("message").textContent =
-      "لم يتم إنشاء جلسة تسجيل الدخول.";
-    return;
-  }
-  document.getElementById("message").textContent =
-    "تم تسجيل الدخول بنجاح ✅";
-  await loadProfile();
+
+  message.innerText =
+    "تم تسجيل الدخول بنجاح";
+
+  document
+    .getElementById("login")
+    .classList.add("hidden");
+
+  document
+    .getElementById("account")
+    .classList.remove("hidden");
+
+  loadProfile();
 }
-// ============================
-// تحميل الحساب
-// ============================
+
+
+/* =========================
+   تحميل الحساب
+========================= */
+
 async function loadProfile() {
-  const {
-    data: { session }
-  } =
-    await supabaseClient.auth.getSession();
-  if (!session) {
-    document.getElementById("login").style.display =
-      "block";
-    document.getElementById("account").style.display =
-      "none";
-    return;
-  }
-  const user =
-    session.user;
-  const { data, error } =
+
+  const { data } =
+    await supabaseClient.auth.getUser();
+
+  if (!data.user) return;
+
+  document.getElementById("userEmail")
+    .innerText = data.user.email;
+
+  const { data: profile, error } =
     await supabaseClient
       .from("profiles")
       .select("balance")
-      .eq("id", user.id)
+      .eq("id", data.user.id)
       .single();
-  if (error) {
-    console.error(error);
-    document.getElementById("message").textContent =
-      "حدث خطأ في تحميل الحساب.";
-    return;
+
+  if (!error && profile) {
+
+    document.getElementById("balance")
+      .innerText =
+      Number(profile.balance).toFixed(2);
   }
-  document.getElementById("balance").textContent =
-    Number(data.balance).toFixed(2);
-  document.getElementById("login").style.display =
-    "none";
-  document.getElementById("account").style.display =
-    "block";
 }
-// ============================
-// إظهار الشحن
-// ============================
-function showDeposit() {
-  document.getElementById("depositBox").style.display =
-    "block";
-}
-// ============================
-// إخفاء الشحن
-// ============================
-function hideDeposit() {
-  document.getElementById("depositBox").style.display =
-    "none";
-}
-// ============================
-// بيانات التحويل
-// ============================
-function showPaymentInfo() {
+
+
+/* =========================
+   طريقة الدفع
+========================= */
+
+function changeMethod() {
+
   const method =
     document.getElementById("method").value;
-  const paymentInfo =
+
+  const info =
     document.getElementById("paymentInfo");
-  if (method === "ليبيانا") {
-    paymentInfo.style.display =
-      "block";
-    paymentInfo.innerHTML = `
-      <strong>
-        📱 رقم ليبيانا للتحويل:
-      </strong>
-      <br><br>
-      <span style="font-size:22px;">
-        0944528936
-      </span>
-      <br><br>
-      قم بالتحويل إلى هذا الرقم ثم ارفع صورة الإيصال.
-    `;
-    return;
+
+  if (method === "libyana") {
+
+    info.classList.remove("hidden");
+
+    info.innerHTML =
+      "قم بالتحويل إلى رقم ليبيانا:<br><br>" +
+      "<strong>0944528936</strong>";
+
   }
-  if (method === "مصرف") {
-    paymentInfo.style.display =
-      "block";
-    paymentInfo.innerHTML = `
-      <strong>
-        🏦 التحويل المصرفي
-      </strong>
-      <br><br>
-      بيانات الحساب المصرفي سيتم إضافتها قريبًا.
-    `;
-    return;
+
+  else if (method === "bank") {
+
+    info.classList.remove("hidden");
+
+    info.innerHTML =
+      "معلومات التحويل المصرفي سيتم وضعها هنا.";
+
   }
-  paymentInfo.style.display =
-    "none";
+
+  else {
+
+    info.classList.add("hidden");
+    info.innerHTML = "";
+  }
 }
-// ============================
-// إرسال طلب الشحن
-// ============================
+
+
+/* =========================
+   إرسال طلب الشحن
+========================= */
+
 async function submitDeposit() {
+
+  const {
+    data: { user }
+  } = await supabaseClient.auth.getUser();
+
+  if (!user) {
+
+    alert("يجب تسجيل الدخول أولاً");
+    return;
+  }
+
   const method =
     document.getElementById("method").value;
+
   const amount =
-    Number(
-      document.getElementById("amount").value
-    );
+    Number(document.getElementById("amount").value);
+
   const senderNumber =
-    document
-      .getElementById("senderNumber")
-      .value
-      .trim();
-  const proof =
-    document
-      .getElementById("proof")
-      .files[0];
+    document.getElementById("senderNumber").value.trim();
+
+  const referenceNumber =
+    document.getElementById("referenceNumber").value.trim();
+
+  const file =
+    document.getElementById("proof").files[0];
+
+  const message =
+    document.getElementById("depositMessage");
+
+
   if (!method) {
-    document.getElementById("depositMessage").textContent =
-      "اختر طريقة التحويل";
+
+    message.innerText =
+      "اختر طريقة الدفع";
+
     return;
   }
+
   if (!amount || amount <= 0) {
-    document.getElementById("depositMessage").textContent =
-      "أدخل مبلغًا صحيحًا";
+
+    message.innerText =
+      "أدخل مبلغ صحيح";
+
     return;
   }
+
   if (!senderNumber) {
-    document.getElementById("depositMessage").textContent =
-      "اكتب رقم الهاتف أو الحساب الذي حولت منه";
+
+    message.innerText =
+      "أدخل رقم الهاتف الذي أرسلت منه";
+
     return;
   }
-  if (!proof) {
-    document.getElementById("depositMessage").textContent =
-      "ارفع صورة إيصال التحويل";
+
+  if (!file) {
+
+    message.innerText =
+      "ارفع صورة إثبات التحويل";
+
     return;
   }
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp"
-  ];
-  if (!allowedTypes.includes(proof.type)) {
-    document.getElementById("depositMessage").textContent =
-      "الملف يجب أن يكون صورة JPG أو PNG أو WEBP";
-    return;
-  }
-  if (proof.size > 5 * 1024 * 1024) {
-    document.getElementById("depositMessage").textContent =
-      "حجم الصورة يجب ألا يتجاوز 5 ميجابايت";
-    return;
-  }
-  const {
-    data: { session }
-  } =
-    await supabaseClient.auth.getSession();
-  if (!session) {
-    document.getElementById("depositMessage").textContent =
-      "يجب تسجيل الدخول أولاً";
-    return;
-  }
-  const user =
-    session.user;
-  document.getElementById("depositMessage").textContent =
-    "جاري رفع صورة التحويل... ⏳";
-  const fileExtension =
-    proof.name
-      .split(".")
-      .pop()
-      .toLowerCase();
+
+
+  message.innerText =
+    "جاري إرسال الطلب...";
+
+
+  /* رفع الصورة */
+
+  const extension =
+    file.name.split(".").pop();
+
   const fileName =
     user.id +
     "/" +
     crypto.randomUUID() +
     "." +
-    fileExtension;
+    extension;
+
+
   const { error: uploadError } =
     await supabaseClient.storage
       .from("payment-proofs")
       .upload(
         fileName,
-        proof
+        file
       );
+
+
   if (uploadError) {
-    console.error(uploadError);
-    document.getElementById("depositMessage").textContent =
-      "حدث خطأ أثناء رفع الصورة: " +
+
+    message.innerText =
+      "فشل رفع الصورة: " +
       uploadError.message;
+
     return;
   }
-  document.getElementById("depositMessage").textContent =
-    "جاري إرسال طلب الشحن... ⏳";
+
+
+  /* إنشاء طلب الشحن */
+
   const { error } =
     await supabaseClient
       .from("wallet_deposits")
       .insert({
+
         user_id: user.id,
+
         method: method,
+
         amount: amount,
+
         sender_number: senderNumber,
-        reference_number: null,
+
+        reference_number:
+          referenceNumber || null,
+
         proof_url: fileName,
+
         status: "pending"
+
       });
+
+
   if (error) {
-    console.error(error);
-    document.getElementById("depositMessage").textContent =
-      "حدث خطأ أثناء إرسال الطلب: " +
+
+    message.innerText =
+      "حدث خطأ: " +
       error.message;
+
     return;
   }
-  document.getElementById("depositMessage").textContent =
-    "تم إرسال طلب الشحن بنجاح ✅";
-  document.getElementById("amount").value =
-    "";
-  document.getElementById("senderNumber").value =
-    "";
-  document.getElementById("proof").value =
-    "";
-  document.getElementById("method").value =
-    "";
-  document.getElementById("paymentInfo").style.display =
-    "none";
+
+
+  message.innerText =
+    "تم إرسال طلب الشحن بنجاح. انتظر مراجعة الإدارة.";
+
+  document.getElementById("amount").value = "";
+  document.getElementById("senderNumber").value = "";
+  document.getElementById("referenceNumber").value = "";
+  document.getElementById("proof").value = "";
 }
-// ============================
-// تسجيل الخروج
-// ============================
+
+
+/* =========================
+   تسجيل الخروج
+========================= */
+
 async function logout() {
+
   await supabaseClient.auth.signOut();
-  location.reload();
+
+  document
+    .getElementById("account")
+    .classList.add("hidden");
+
+  document
+    .getElementById("login")
+    .classList.remove("hidden");
+
+  document.getElementById("email").value = "";
+  document.getElementById("otp").value = "";
+
+  document
+    .getElementById("otpArea")
+    .classList.add("hidden");
+
+  document.getElementById("message").innerText = "";
 }
-// ============================
-// التحقق عند فتح الموقع
-// ============================
-supabaseClient.auth.getSession().then(
-  ({ data }) => {
-    if (data.session) {
-      loadProfile();
-    } else {
-      document.getElementById("login").style.display =
-        "block";
-      document.getElementById("account").style.display =
-        "none";
-    }
+
+
+/* =========================
+   فحص الجلسة عند فتح الموقع
+========================= */
+
+async function checkSession() {
+
+  const {
+    data: { session }
+  } =
+    await supabaseClient.auth.getSession();
+
+  if (session) {
+
+    document
+      .getElementById("login")
+      .classList.add("hidden");
+
+    document
+      .getElementById("account")
+      .classList.remove("hidden");
+
+    loadProfile();
+
+  } else {
+
+    document
+      .getElementById("login")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("account")
+      .classList.add("hidden");
   }
-);
+}
+
+
+checkSession();
+
 </script>
+
 </body>
 </html>
-
-بعد لصق الكود اعمل Commit changes، ثم افتح الموقع وجرب إدخال بريدك.
-
-إذا ظهر لك “تم إرسال الرمز إلى بريدك”، افتح البريد وابحث عن رمز الـ6 أرقام.
