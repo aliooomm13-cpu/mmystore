@@ -3,11 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>متجري</title>
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,24 +13,20 @@
       padding: 20px;
       text-align: center;
     }
-
     input, select {
       width: 90%;
       padding: 12px;
       margin: 7px;
       box-sizing: border-box;
     }
-
     button {
       padding: 12px 20px;
       margin: 7px;
       cursor: pointer;
     }
-
     #account {
       display: none;
     }
-
     #depositBox {
       display: none;
       margin-top: 25px;
@@ -41,86 +34,70 @@
       border: 1px solid #ccc;
       border-radius: 10px;
     }
-
     .balance {
       font-size: 26px;
       font-weight: bold;
     }
-
-    #message {
+    #paymentInfo {
+      display: none;
+      margin: 15px 0;
+      padding: 15px;
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    #message,
+    #depositMessage {
       margin-top: 15px;
     }
   </style>
 </head>
-
 <body>
-
   <!-- تسجيل الدخول -->
   <div id="login">
-
     <h1>🛒 متجري</h1>
-
     <h2>تسجيل الدخول</h2>
-
     <input
       id="email"
       type="email"
       placeholder="البريد الإلكتروني"
     >
-
     <input
       id="password"
       type="password"
       placeholder="كلمة المرور"
     >
-
     <br>
-
     <button onclick="register()">
       إنشاء حساب
     </button>
-
     <button onclick="login()">
       تسجيل الدخول
     </button>
-
     <p id="message"></p>
-
   </div>
-
-
   <!-- حساب العميل -->
   <div id="account">
-
     <h1>أهلاً بك 👋</h1>
-
     <p>رصيد محفظتك:</p>
-
     <p class="balance">
       <span id="balance">0.00</span> د.ل
     </p>
-
     <button onclick="showDeposit()">
       💰 شحن المحفظة
     </button>
-
     <button onclick="logout()">
       تسجيل الخروج
     </button>
-
-
     <!-- نموذج الشحن -->
     <div id="depositBox">
-
       <h2>شحن المحفظة 💰</h2>
-
-      <select id="method">
+      <select id="method" onchange="showPaymentInfo()">
         <option value="">اختر طريقة التحويل</option>
         <option value="ليبيانا">ليبيانا</option>
-        <option value="المدار">المدار</option>
         <option value="مصرف">تحويل مصرفي</option>
       </select>
-
+      <!-- بيانات التحويل -->
+      <div id="paymentInfo"></div>
       <input
         id="amount"
         type="number"
@@ -128,286 +105,269 @@
         step="0.01"
         placeholder="المبلغ بالدينار الليبي"
       >
-
       <input
         id="senderNumber"
         type="text"
         placeholder="رقم الهاتف أو الحساب الذي حولت منه"
       >
-
+      <p>
+        📸 أرسل صورة واضحة لإيصال التحويل
+      </p>
       <input
-        id="reference"
-        type="text"
-        placeholder="رقم العملية / المرجع"
+        id="proof"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
       >
-
       <p>
         بعد إرسال الطلب ستراجعه الإدارة.
         <br>
         لن يضاف المبلغ إلى رصيدك إلا بعد الموافقة.
       </p>
-
       <button onclick="submitDeposit()">
         إرسال طلب الشحن
       </button>
-
       <button onclick="hideDeposit()">
         إلغاء
       </button>
-
       <p id="depositMessage"></p>
-
     </div>
-
   </div>
-
-
 <script>
-
 const SUPABASE_URL =
 "https://evqmpbhozwpujjrxkbat.supabase.co";
-
 const SUPABASE_KEY =
 "sb_publishable_4n7k-PEyPPNA9RcFVMa4Cg_lqW19wZu";
-
 const supabaseClient =
 supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
-
-
 // إنشاء حساب
 async function register() {
-
   const email =
     document.getElementById("email").value.trim();
-
   const password =
     document.getElementById("password").value;
-
   if (!email || !password) {
     document.getElementById("message").textContent =
       "اكتب البريد وكلمة المرور";
     return;
   }
-
   const { error } =
     await supabaseClient.auth.signUp({
       email: email,
       password: password
     });
-
   if (error) {
-
     document.getElementById("message").textContent =
       error.message;
-
     return;
   }
-
   document.getElementById("message").textContent =
     "تم إنشاء الحساب ✅";
 }
-
-
 // تسجيل الدخول
 async function login() {
-
   const email =
     document.getElementById("email").value.trim();
-
   const password =
     document.getElementById("password").value;
-
   const { error } =
     await supabaseClient.auth.signInWithPassword({
       email: email,
       password: password
     });
-
   if (error) {
-
     document.getElementById("message").textContent =
       error.message;
-
     return;
   }
-
   await loadProfile();
 }
-
-
 // تحميل الحساب والرصيد
 async function loadProfile() {
-
   const { data: { user } } =
     await supabaseClient.auth.getUser();
-
   if (!user) {
     return;
   }
-
   const { data, error } =
     await supabaseClient
       .from("profiles")
       .select("balance")
       .eq("id", user.id)
       .single();
-
   if (error) {
-
     console.error(error);
-
     document.getElementById("message").textContent =
       "حدث خطأ في تحميل الحساب";
-
     return;
   }
-
   document.getElementById("balance").textContent =
     Number(data.balance).toFixed(2);
-
   document.getElementById("login").style.display =
     "none";
-
   document.getElementById("account").style.display =
     "block";
 }
-
-
 // إظهار نموذج الشحن
 function showDeposit() {
-
   document.getElementById("depositBox").style.display =
     "block";
 }
-
-
 // إخفاء نموذج الشحن
 function hideDeposit() {
-
   document.getElementById("depositBox").style.display =
     "none";
 }
-
-
-// إرسال طلب الشحن
-async function submitDeposit() {
-
+// إظهار بيانات التحويل
+function showPaymentInfo() {
   const method =
     document.getElementById("method").value;
-
+  const paymentInfo =
+    document.getElementById("paymentInfo");
+  if (method === "ليبيانا") {
+    paymentInfo.style.display = "block";
+    paymentInfo.innerHTML = `
+      <strong>📱 رقم ليبيانا للتحويل:</strong>
+      <br><br>
+      <span style="font-size:22px;">
+        0944528936
+      </span>
+      <br><br>
+      قم بالتحويل إلى هذا الرقم ثم ارفع صورة الإيصال.
+    `;
+    return;
+  }
+  if (method === "مصرف") {
+    paymentInfo.style.display = "block";
+    paymentInfo.innerHTML = `
+      <strong>🏦 التحويل المصرفي</strong>
+      <br><br>
+      بيانات الحساب المصرفي سيتم إضافتها قريبًا.
+    `;
+    return;
+  }
+  paymentInfo.style.display = "none";
+}
+// إرسال طلب الشحن
+async function submitDeposit() {
+  const method =
+    document.getElementById("method").value;
   const amount =
     Number(document.getElementById("amount").value);
-
   const senderNumber =
     document.getElementById("senderNumber").value.trim();
-
-  const reference =
-    document.getElementById("reference").value.trim();
-
-
+  const proof =
+    document.getElementById("proof").files[0];
   if (!method) {
-
     document.getElementById("depositMessage").textContent =
       "اختر طريقة التحويل";
-
     return;
   }
-
-
   if (!amount || amount <= 0) {
-
     document.getElementById("depositMessage").textContent =
       "أدخل مبلغًا صحيحًا";
-
     return;
   }
-
-
   if (!senderNumber) {
-
     document.getElementById("depositMessage").textContent =
       "اكتب رقم الهاتف أو الحساب الذي حولت منه";
-
     return;
   }
-
-
+  if (!proof) {
+    document.getElementById("depositMessage").textContent =
+      "ارفع صورة إيصال التحويل";
+    return;
+  }
+  // السماح بالصور فقط
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ];
+  if (!allowedTypes.includes(proof.type)) {
+    document.getElementById("depositMessage").textContent =
+      "الملف يجب أن يكون صورة JPG أو PNG أو WEBP";
+    return;
+  }
+  // الحد الأقصى 5 ميجابايت
+  if (proof.size > 5 * 1024 * 1024) {
+    document.getElementById("depositMessage").textContent =
+      "حجم الصورة يجب ألا يتجاوز 5 ميجابايت";
+    return;
+  }
   const { data: { user } } =
     await supabaseClient.auth.getUser();
-
-
   if (!user) {
-
     document.getElementById("depositMessage").textContent =
       "يجب تسجيل الدخول أولاً";
-
     return;
   }
-
-
+  document.getElementById("depositMessage").textContent =
+    "جاري رفع صورة التحويل... ⏳";
+  // اسم فريد للصورة
+  const fileExtension =
+    proof.name.split(".").pop().toLowerCase();
+  const fileName =
+    user.id +
+    "/" +
+    crypto.randomUUID() +
+    "." +
+    fileExtension;
+  // رفع الصورة إلى Storage
+  const { error: uploadError } =
+    await supabaseClient.storage
+      .from("payment-proofs")
+      .upload(
+        fileName,
+        proof
+      );
+  if (uploadError) {
+    console.error(uploadError);
+    document.getElementById("depositMessage").textContent =
+      "حدث خطأ أثناء رفع الصورة: " +
+      uploadError.message;
+    return;
+  }
+  document.getElementById("depositMessage").textContent =
+    "جاري إرسال طلب الشحن... ⏳";
+  // إنشاء طلب الشحن
   const { error } =
     await supabaseClient
       .from("wallet_deposits")
       .insert({
-
         user_id: user.id,
-
         method: method,
-
         amount: amount,
-
         sender_number: senderNumber,
-
-        reference_number:
-          reference || null,
-
+        reference_number: null,
+        proof_url: fileName,
         status: "pending"
-
       });
-
-
   if (error) {
-
     console.error(error);
-
     document.getElementById("depositMessage").textContent =
       "حدث خطأ أثناء إرسال الطلب: " +
       error.message;
-
     return;
   }
-
-
   document.getElementById("depositMessage").textContent =
-    "تم إرسال طلب الشحن ✅";
-
-
+    "تم إرسال طلب الشحن بنجاح ✅";
   document.getElementById("amount").value = "";
-
   document.getElementById("senderNumber").value = "";
-
-  document.getElementById("reference").value = "";
-
+  document.getElementById("proof").value = "";
   document.getElementById("method").value = "";
+  document.getElementById("paymentInfo").style.display =
+    "none";
 }
-
-
 // تسجيل الخروج
 async function logout() {
-
   await supabaseClient.auth.signOut();
-
   location.reload();
 }
-
-
 // التحقق عند فتح الموقع
 loadProfile();
-
 </script>
-
 </body>
 </html>
